@@ -13,6 +13,21 @@ MAX_MESSAGES = 100000
 FILTER_KEYWORDS = ''
 
 
+
+def parse_views_text(text):
+    """"987" -> 987, "1.2K" -> 1200, "3,4M" -> 3400000; мусор -> 0."""
+    text = text.strip().upper().replace(',', '.')
+    multiplier = 1
+    if text.endswith('K'):
+        multiplier, text = 1_000, text[:-1]
+    elif text.endswith('M'):
+        multiplier, text = 1_000_000, text[:-1]
+    try:
+        return int(float(text) * multiplier)
+    except ValueError:
+        return 0
+
+
 class TelegramChannelParser:
     def __init__(self, channel_username, excel_file, filter_keywords=''):
         self.channel_username = channel_username.replace('@', '')
@@ -84,15 +99,12 @@ class TelegramChannelParser:
             pass
         return None
 
-    def parse_views(self, views_element):
-        try:
-            if views_element:
-                views_text = views_element.get_text(strip=True)
-                views_text = views_text.replace('K', '000').replace('M', '000000').replace(',', '')
-                return int(''.join(filter(str.isdigit, views_text)))
-        except:
-            pass
-        return 0
+    @staticmethod
+    def parse_views(views_element):
+        """Переводит счётчик просмотров Telegram ("987", "1.2K", "3,4M") в число."""
+        if not views_element:
+            return 0
+        return parse_views_text(views_element.get_text(strip=True))
 
     async def fetch_page(self, url):
         headers = {

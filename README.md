@@ -1,43 +1,44 @@
 # Telegram Channel Parser
 
-Async scraper that exports messages from public Telegram channels to Excel — without a bot token or Telegram API registration.
+Exports the history of a public Telegram channel to Excel. Works through the public web preview (`t.me/s/<channel>`), so it needs no bot token, no Telegram account and no API keys.
 
-## Features
+I wrote it to collect job posts from channels like `@findwork` and filter them by keywords.
 
-- **No bot token required** — works through the web version of Telegram
-- **Async scraping** via `aiohttp` for high performance
-- **Flexible filtering** — by keyword, date range, message type
-- **Excel export** with `openpyxl` — clean, ready-to-use spreadsheets
-- **Configurable** — set channel, period, and filters in a single config block
+## How it works
 
-## Stack
+1. Loads `https://t.me/s/<channel>` with `aiohttp` and parses the posts with BeautifulSoup.
+2. Pages back through history with `?before=<oldest message id>` until it reaches the start of the period or the message limit.
+3. Keeps only posts that contain at least one of the keywords (if keywords are set).
+4. Appends rows to an Excel file and skips message IDs that are already there, so re-running the script only adds new posts.
 
-`Python` `aiohttp` `BeautifulSoup4` `openpyxl` `asyncio`
+Columns: `ID`, `Дата`, `Время`, `Автор`, `Текст сообщения`, `Просмотры`, `Ссылка`. View counters like `1.2K` are converted to numbers.
 
-## Quick Start
+## Run
 
 ```bash
 git clone https://github.com/naurner/Work-stack-parser
 cd Work-stack-parser
 pip install -r requirements.txt
+python channel_parser.py
 ```
 
-Edit the config at the top of `Parser message.py`:
+Settings are at the top of `channel_parser.py`:
 
 ```python
-CHANNEL_USERNAME = "@channel_name"  # target channel
-EXCEL_FILE       = "output.xlsx"
-PARSE_PERIOD_DAYS = 30              # how many days back
-FILTER_KEYWORDS  = ""               # leave empty to get all messages
+CHANNEL_USERNAME = '@findwork'          # public channel
+EXCEL_FILE = 'telegram_messages.xlsx'
+PARSE_PERIOD_DAYS = 365                 # how far back to go
+MAX_MESSAGES = 100000
+FILTER_KEYWORDS = 'python, django'      # comma-separated, empty = everything
 ```
 
-Then run:
+## Tests
 
 ```bash
-python "Parser message.py"
+pip install pytest
+pytest -v
 ```
 
-## Output
+## Stack
 
-An `.xlsx` file with columns: `date`, `time`, `text`, `views`, `link`.
-
+Python 3.10+ · asyncio · aiohttp · BeautifulSoup4 + lxml · openpyxl · pytest
